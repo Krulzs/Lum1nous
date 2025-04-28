@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hmmm</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      position: relative;
+      overflow: visible;
+      transition: background 1s ease-in-out;
+    }
+    body.celebration {
+      background: url('img/background.jpg') center/cover no-repeat;
+    }
+    #question-container {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    #question-container input,
+    #question-container button {
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+    }
+    #question-container input {
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+    }
+    #question-container button {
+      padding: 0.6rem 1rem;
+      background: #e91e63;
+      color: #fff;
+      cursor: pointer;
+    }
+    #fireworks-container,
+    #pokemon-container {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .spark {
+      position: absolute;
+      width: 8px; height: 8px;
+      background: #ff80ab;
+      border-radius: 50%;
+      box-shadow: 0 0 14px #ff80ab;
+      animation: rise 1.2s ease-out forwards;
+    }
+    @keyframes rise {
+      0% { top: 100vh; opacity: 1; transform: scale(0.5); }
+      70% { top: 50vh; opacity: 1; transform: scale(1); }
+      100% { top: 50vh; opacity: 0; transform: scale(1.2); }
+    }
+    .explosion-particle {
+      position: absolute;
+      width: 5px; height: 5px;
+      background: #ff4081;
+      border-radius: 50%;
+      opacity: 1;
+      animation: explode 1s ease-out forwards;
+    }
+    @keyframes explode {
+      0% { opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+    }
+    .letter {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 5rem;
+      opacity: 0;
+      text-shadow: 0 0 10px #fff, 0 0 30px #ff80ab;
+      animation: fadeIn 1s forwards;
+    }
+    @keyframes fadeIn { to { opacity: 1; } }
+    #pokemon-container img {
+      position: absolute;
+      width: 80px;
+      animation: float 8s linear forwards;
+    }
+    @keyframes float {
+      from { top: 100vh; }
+      to { top: -120px; }
+    }
+    #bg-music {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <audio id="bg-music" src="audio/OST.mp3" loop></audio>
+  <div id="question-container">
+    <p id="question"></p>
+    <input id="answer" type="text" placeholder="Your answer...">
+    <button id="submit">Submit</button>
+  </div>
+  <div id="fireworks-container"></div>
+  <div id="pokemon-container"></div>
+
+  <script>
+    const questions = [
+      { question: 'Whats your name?', answer: 'Skye' },
+      { question: 'Whats my name? (4 letters)', answer: 'Mari' }
+    ];
+    let current = 0;
+
+    const qContainer = document.getElementById('question-container');
+    const questionEl = document.getElementById('question');
+    const answerEl = document.getElementById('answer');
+    const submitBtn = document.getElementById('submit');
+    const fireworksContainer = document.getElementById('fireworks-container');
+    const pokemonContainer = document.getElementById('pokemon-container');
+    const bgMusic = document.getElementById('bg-music');
+
+    questionEl.textContent = questions[0].question;
+
+    function checkAnswer() {
+      const userAnswer = answerEl.value.trim();
+      if (userAnswer === questions[current].answer) {
+        current++;
+        if (current < questions.length) {
+          questionEl.textContent = questions[current].question;
+          answerEl.value = '';
+          answerEl.focus();
+        } else {
+          qContainer.style.display = 'none';
+          startCelebration();
+        }
+      } else {
+        alert('Wrong Answer. Try again!');
+      }
+    }
+    submitBtn.addEventListener('click', checkAnswer);
+    answerEl.addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+
+    async function startCelebration() {
+      document.body.classList.add('celebration');
+      bgMusic.volume = 0.4;
+      bgMusic.play();
+
+      const letters = ['I', '❤️', 'U'];
+      const positions = [30, 50, 70];
+      for (let i = 0; i < letters.length; i++) {
+        await new Promise(res => {
+          const spark = document.createElement('div');
+          spark.className = 'spark';
+          spark.style.left = `${positions[i]}vw`;
+          fireworksContainer.appendChild(spark);
+          spark.addEventListener('animationend', () => {
+            createExplosion(positions[i]);
+            fireworksContainer.removeChild(spark);
+            const letter = document.createElement('div');
+            letter.className = 'letter';
+            letter.style.left = `${positions[i]}vw`;
+            letter.textContent = letters[i];
+            fireworksContainer.appendChild(letter);
+            setTimeout(res, 1200);
+          });
+        });
+      }
+      spawnPokemons();
+    }
+
+    function createExplosion(xPos) {
+      const count = 80; // mais partículas
+      const maxDist = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'explosion-particle';
+        p.style.left = `calc(${xPos}vw - 2.5px)`;
+        p.style.top = `calc(50vh - 2.5px)`;
+        const angle = Math.random() * 2 * Math.PI;
+        const dist = Math.random() * maxDist;
+        p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+        p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+        fireworksContainer.appendChild(p);
+        p.addEventListener('animationend', () => fireworksContainer.removeChild(p));
+      }
+    }
+
+    function spawnPokemons() {
+      const pokemons = [
+        { gif: 'img/Marshadow.gif', sound: 'audio/marshadow.mp3' },
+        { gif: 'img/Mimikyu.gif', sound: 'audio/mimikyu.mp3' }
+      ];
+      setInterval(() => {
+        const { gif, sound } = pokemons[Math.floor(Math.random() * pokemons.length)];
+        const img = document.createElement('img');
+        img.src = gif;
+        img.style.left = Math.random() * 90 + 'vw';
+        if (Math.random() < 0.5) img.style.transform = 'scaleX(-1)';
+        pokemonContainer.appendChild(img);
+        const audio = new Audio(sound);
+        audio.volume = 0.04;
+        audio.play();
+        img.addEventListener('animationend', () => pokemonContainer.removeChild(img));
+      }, 700);
+    }
+  </script>
+</body>
+</html>
